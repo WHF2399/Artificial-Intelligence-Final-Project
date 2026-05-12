@@ -3,7 +3,7 @@ import time
 import sys
 from config import (
     CAMERA_INDEX, CAPTURE_WIDTH, CAPTURE_HEIGHT,
-    COOLDOWN_DURATION
+    COOLDOWN_DURATION, INDEX_POINTING_GRACE
 )
 from hand_tracker import HandTracker
 from gesture_recognizer import GestureRecognizer
@@ -71,6 +71,16 @@ def main():
 
     logger.log_info("Operation handlers registered")
 
+    window_name = 'AI Gesture Control'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    try:
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
+    except Exception:
+        pass
+
+    last_index_tip = None
+    last_index_time = 0.0
+
     try:
         while True:
             ret, frame = cap.read()
@@ -102,12 +112,21 @@ def main():
                 frame = hand_tracker.draw_landmarks(frame)
 
                 if gesture == 'index_pointing' and landmarks:
-                    index_tip = landmarks[8]
+                    last_index_tip = landmarks[8]
+                    last_index_time = time.time()
+
+                should_move = (
+                    last_index_tip is not None and
+                    (time.time() - last_index_time) <= INDEX_POINTING_GRACE
+                )
+
+                if should_move:
+                    index_tip = last_index_tip
                     print(f"Index pointing detected, moving mouse to: ({index_tip[0]:.2f}, {index_tip[1]:.2f})")
                     mouse_controller.move_mouse(index_tip[0], index_tip[1], CAPTURE_WIDTH, CAPTURE_HEIGHT)
                     mx, my = mouse_controller.get_mouse_position()
                     logger.log_mouse_move(mx, my)
-                    frame = visualizer.draw_finger_tip(frame, index_tip[0], index_tip[1], 
+                    frame = visualizer.draw_finger_tip(frame, index_tip[0], index_tip[1],
                                                        CAPTURE_WIDTH, CAPTURE_HEIGHT)
 
             else:
@@ -135,9 +154,13 @@ def main():
             statistics = gesture_mapper.get_statistics()
             frame = visualizer.draw_statistics(frame, statistics)
 
-            cv2.imshow('AI Gesture Control', frame)
+            cv2.imshow(window_name, frame)
 
             key = cv2.waitKey(1) & 0xFF
+
+            if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
+                logger.log_info("Window closed by user")
+                break
             if key == ord('q'):
                 logger.log_info("Quit key pressed")
                 break

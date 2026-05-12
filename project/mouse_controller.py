@@ -4,7 +4,9 @@ import os
 import time
 import sys
 from typing import Optional, Tuple
-from config import SMOOTHING_ALPHA, MOUSE_MOVE_SCALE, SCREENSHOT_DIR
+from config import (
+    SMOOTHING_ALPHA, MOUSE_MOVE_SCALE, MOUSE_SCREEN_MARGIN, SCREENSHOT_DIR
+)
 
 try:
     from PIL import ImageGrab
@@ -28,7 +30,7 @@ class MouseController:
         
         self.is_moving = False
         self.movement_threshold = 0.01
-        
+
         self.last_screenshot_time = 0
         self.screenshot_interval = 1.0
 
@@ -39,9 +41,18 @@ class MouseController:
         return self.smooth_x, self.smooth_y
 
     def move_mouse(self, normalized_x: float, normalized_y: float, frame_width: int, frame_height: int):
-        target_x = (1 - normalized_x) * self.screen_width * MOUSE_MOVE_SCALE
-        target_y = normalized_y * self.screen_height * MOUSE_MOVE_SCALE
-        
+        usable_width = max(1, self.screen_width - 2 * MOUSE_SCREEN_MARGIN)
+        usable_height = max(1, self.screen_height - 2 * MOUSE_SCREEN_MARGIN)
+
+        target_x = normalized_x * usable_width + MOUSE_SCREEN_MARGIN
+        target_y = normalized_y * usable_height + MOUSE_SCREEN_MARGIN
+
+        center_x = self.screen_width / 2
+        center_y = self.screen_height / 2
+
+        target_x = (target_x - center_x) * MOUSE_MOVE_SCALE + center_x
+        target_y = (target_y - center_y) * MOUSE_MOVE_SCALE + center_y
+
         target_x = max(0, min(self.screen_width - 1, target_x))
         target_y = max(0, min(self.screen_height - 1, target_y))
         
