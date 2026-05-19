@@ -3,7 +3,7 @@ import time
 import sys
 from config import (
     CAMERA_INDEX, CAPTURE_WIDTH, CAPTURE_HEIGHT,
-    COOLDOWN_DURATION
+    COOLDOWN_DURATION, INDEX_POINTING_GRACE
 )
 from hand_tracker import HandTracker
 from gesture_recognizer import GestureRecognizer
@@ -45,6 +45,10 @@ def main():
         mouse_controller.next_page()
         logger.log_operation_executed('next_page', 'scissors')
 
+    def handle_previous_page(landmarks=None):
+        mouse_controller.previous_page()
+        logger.log_operation_executed('previous_page', 'thumbs_up')
+
     def handle_screenshot(landmarks=None):
         filepath = mouse_controller.take_screenshot()
         if filepath:
@@ -62,14 +66,32 @@ def main():
         mouse_controller.click()
         logger.log_operation_executed('click', 'pinch')
 
+    def handle_scroll(landmarks=None):
+        mouse_controller.scroll(landmarks)
+        logger.log_operation_executed('scroll', 'three_finger_scroll')
+
+    # three-finger scroll removed per user request
+
     gesture_mapper.register_operation_handler('play', handle_play)
     gesture_mapper.register_operation_handler('pause', handle_pause)
     gesture_mapper.register_operation_handler('next_page', handle_next_page)
+    gesture_mapper.register_operation_handler('previous_page', handle_previous_page)
     gesture_mapper.register_operation_handler('screenshot', handle_screenshot)
     gesture_mapper.register_operation_handler('mouse_move', handle_mouse_move)
     gesture_mapper.register_operation_handler('click', handle_click)
+    gesture_mapper.register_operation_handler('scroll', handle_scroll)
 
     logger.log_info("Operation handlers registered")
+
+    window_name = 'AI Gesture Control'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    try:
+        cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
+    except Exception:
+        pass
+
+    last_index_tip = None
+    last_index_time = 0.0
 
     try:
         while True:
@@ -94,6 +116,8 @@ def main():
                 if stable_gesture != "unknown":
                     logger.log_gesture_detected(stable_gesture, confidence)
 
+                # three-finger scroll disabled
+
                 operation = gesture_mapper.process_gesture(stable_gesture, landmarks)
                 if operation:
                     logger.log_operation_executed(operation, stable_gesture)
@@ -102,12 +126,21 @@ def main():
                 frame = hand_tracker.draw_landmarks(frame)
 
                 if gesture == 'index_pointing' and landmarks:
-                    index_tip = landmarks[8]
+                    last_index_tip = landmarks[8]
+                    last_index_time = time.time()
+
+                should_move = (
+                    last_index_tip is not None and
+                    (time.time() - last_index_time) <= INDEX_POINTING_GRACE
+                )
+
+                if should_move:
+                    index_tip = last_index_tip
                     print(f"Index pointing detected, moving mouse to: ({index_tip[0]:.2f}, {index_tip[1]:.2f})")
                     mouse_controller.move_mouse(index_tip[0], index_tip[1], CAPTURE_WIDTH, CAPTURE_HEIGHT)
                     mx, my = mouse_controller.get_mouse_position()
                     logger.log_mouse_move(mx, my)
-                    frame = visualizer.draw_finger_tip(frame, index_tip[0], index_tip[1], 
+                    frame = visualizer.draw_finger_tip(frame, index_tip[0], index_tip[1],
                                                        CAPTURE_WIDTH, CAPTURE_HEIGHT)
 
             else:
@@ -135,9 +168,13 @@ def main():
             statistics = gesture_mapper.get_statistics()
             frame = visualizer.draw_statistics(frame, statistics)
 
-            cv2.imshow('AI Gesture Control', frame)
+            cv2.imshow(window_name, frame)
 
             key = cv2.waitKey(1) & 0xFF
+
+            if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
+                logger.log_info("Window closed by user")
+                break
             if key == ord('q'):
                 logger.log_info("Quit key pressed")
                 break

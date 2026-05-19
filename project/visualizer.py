@@ -21,6 +21,7 @@ class Visualizer:
             'open_palm': (0, 255, 0),
             'fist': (0, 0, 255),
             'scissors': (255, 0, 0),
+            'thumbs_up': (0, 165, 255),
             'ok': (0, 255, 255),
             'index_pointing': (255, 255, 0),
             'pinch': (255, 0, 255),
@@ -104,6 +105,8 @@ class Visualizer:
             "Open Palm - Pause",
             "Fist - Play",
             "Scissors - Next Page",
+            "Thumbs Up - Previous Page",
+            "Three Fingers - Scroll (non-PPT)",
             "OK - Screenshot",
             "Index Pointing - Mouse Move",
             "Pinch - Click"

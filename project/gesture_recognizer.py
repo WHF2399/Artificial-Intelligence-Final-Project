@@ -145,6 +145,40 @@ class GestureRecognizer:
         pinky_bent = self._is_finger_bent(landmarks, 'pinky')
         
         return distance < 0.06 and middle_bent and ring_bent and pinky_bent
+
+    def _detect_three_finger_scroll(self, landmarks: List[Tuple[float, float, float]]) -> bool:
+        index_straight = self._is_finger_straight(landmarks, 'index')
+        middle_straight = self._is_finger_straight(landmarks, 'middle')
+        ring_straight = self._is_finger_straight(landmarks, 'ring')
+        thumb_bent = self._is_finger_bent(landmarks, 'thumb')
+        pinky_bent = self._is_finger_bent(landmarks, 'pinky')
+
+        # ensure gaps between fingers to avoid false positives with pinch-like gestures
+        index_tip = np.array(landmarks[8])
+        middle_tip = np.array(landmarks[12])
+        ring_tip = np.array(landmarks[16])
+        index_middle_gap = np.linalg.norm(index_tip - middle_tip)
+        middle_ring_gap = np.linalg.norm(middle_tip - ring_tip)
+
+        return index_straight and middle_straight and ring_straight and thumb_bent and pinky_bent and \
+               index_middle_gap > 0.04 and middle_ring_gap > 0.04
+
+    def _detect_thumbs_up(self, landmarks: List[Tuple[float, float, float]]) -> bool:
+        thumb_straight = self._is_finger_straight(landmarks, 'thumb')
+        index_bent = self._is_finger_bent(landmarks, 'index')
+        middle_bent = self._is_finger_bent(landmarks, 'middle')
+        ring_bent = self._is_finger_bent(landmarks, 'ring')
+        pinky_bent = self._is_finger_bent(landmarks, 'pinky')
+
+        thumb_tip = np.array(landmarks[4])
+        thumb_ip = np.array(landmarks[3])
+        thumb_mcp = np.array(landmarks[2])
+        wrist = np.array(landmarks[0])
+
+        thumb_up = thumb_tip[1] < thumb_ip[1] < thumb_mcp[1]
+        thumb_above_palm = thumb_tip[1] < wrist[1] - 0.05
+
+        return thumb_straight and index_bent and middle_bent and ring_bent and pinky_bent and thumb_up and thumb_above_palm
     
     def recognize(self, landmarks: Optional[List[Tuple[float, float, float]]]) -> str:
         if landmarks is None or len(landmarks) < 21:
@@ -154,7 +188,9 @@ class GestureRecognizer:
         gesture_priority = [
             ('ok', self._detect_ok_gesture),
             ('pinch', self._detect_pinch),
+            ('thumbs_up', self._detect_thumbs_up),
             ('scissors', self._detect_scissors),
+            ('three_finger_scroll', self._detect_three_finger_scroll),
             ('index_pointing', self._detect_index_pointing),
             ('open_palm', self._detect_open_palm),
             ('fist', self._detect_fist),
@@ -202,6 +238,7 @@ class GestureRecognizer:
             'fist': 'Fist',
             'scissors': 'Scissors',
             'ok': 'OK',
+            'thumbs_up': 'Thumbs Up',
             'index_pointing': 'Index Pointing',
             'pinch': 'Pinch',
             'unknown': 'Unknown'
