@@ -45,6 +45,10 @@ def main():
         mouse_controller.next_page()
         logger.log_operation_executed('next_page', 'scissors')
 
+    def handle_previous_page(landmarks=None):
+        mouse_controller.previous_page()
+        logger.log_operation_executed('previous_page', 'thumbs_up')
+
     def handle_screenshot(landmarks=None):
         filepath = mouse_controller.take_screenshot()
         if filepath:
@@ -62,12 +66,20 @@ def main():
         mouse_controller.click()
         logger.log_operation_executed('click', 'pinch')
 
+    def handle_scroll(landmarks=None):
+        mouse_controller.scroll(landmarks)
+        logger.log_operation_executed('scroll', 'three_finger_scroll')
+
+    # three-finger scroll removed per user request
+
     gesture_mapper.register_operation_handler('play', handle_play)
     gesture_mapper.register_operation_handler('pause', handle_pause)
     gesture_mapper.register_operation_handler('next_page', handle_next_page)
+    gesture_mapper.register_operation_handler('previous_page', handle_previous_page)
     gesture_mapper.register_operation_handler('screenshot', handle_screenshot)
     gesture_mapper.register_operation_handler('mouse_move', handle_mouse_move)
     gesture_mapper.register_operation_handler('click', handle_click)
+    gesture_mapper.register_operation_handler('scroll', handle_scroll)
 
     logger.log_info("Operation handlers registered")
 
@@ -103,6 +115,8 @@ def main():
 
                 if stable_gesture != "unknown":
                     logger.log_gesture_detected(stable_gesture, confidence)
+
+                # three-finger scroll disabled
 
                 operation = gesture_mapper.process_gesture(stable_gesture, landmarks)
                 if operation:

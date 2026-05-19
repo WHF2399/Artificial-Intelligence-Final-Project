@@ -29,6 +29,8 @@ COOLDOWN_DURATION = {
     'play': 1.5,
     'pause': 1.5,
     'next_page': 1.0,
+    'previous_page': 1.0,
+    'scroll': 0.15,
     'screenshot': 2.0,
     'click': 0.5,
 }
@@ -44,10 +46,16 @@ MOUSE_MOVE_SCALE = 2.8
 
 MOUSE_SCREEN_MARGIN = 10
 
+MOUSE_SCROLL_AMOUNT = 8
+THREE_FINGER_SCROLL_THRESHOLD = 0.02
+THREE_FINGER_MIN_GAP = 0.04
+
 MOUSE_CONTROL_MODE = "absolute"
 RELATIVE_SENSITIVITY = 1.2
 RELATIVE_SMOOTHING = 0.7
 RELATIVE_DEADZONE = 0.0015
+
+# MOUSE_SCROLL_AMOUNT and three-finger scroll settings removed — scrolling by gesture disabled
 
 PINCH_THRESHOLD = 0.05
 

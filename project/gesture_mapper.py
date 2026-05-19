@@ -14,6 +14,8 @@ class GestureMapper:
             'open_palm': 'pause',
             'fist': 'play',
             'scissors': 'next_page',
+            'thumbs_up': 'previous_page',
+            'three_finger_scroll': 'scroll',
             'ok': 'screenshot',
             'index_pointing': 'mouse_move',
             'pinch': 'click',
@@ -139,7 +141,8 @@ class GestureMapper:
         descriptions = {
             'pause': '暂停播放',
             'play': '播放',
-            'next_page': '下一页',
+            'next_page': '向下滚动',
+            'previous_page': '向上滚动',
             'screenshot': '截图',
             'mouse_move': '鼠标移动',
             'click': '鼠标点击',
